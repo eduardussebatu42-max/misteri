@@ -1,0 +1,1665 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MYSTERY BOX BREAK EVEN POINT</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Fredoka -->
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- MediaPipe Hands & Camera Utils -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+    <!-- Mammoth.js for Teacher Mode Word Parsing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Fredoka', sans-serif;
+            background: linear-gradient(135deg, #19B5C9 0%, #2E9E5B 100%);
+            overflow: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        /* Tropical Waterfall Animated Background */
+        .waterfall-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: linear-gradient(rgba(15, 32, 39, 0.3), rgba(32, 58, 67, 0.4)), 
+                        radial-gradient(circle at 50% 20%, #4FB3F6 0%, #19B5C9 40%, #1F6B3E 100%);
+            z-index: -2;
+        }
+
+        .waterfall-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: url('https://placehold.co/1920x1080/19B5C9/FFFFFF?text=Lanskap+Air+Terjun+Tropis') center/cover no-repeat;
+            opacity: 0.25;
+            z-index: -1;
+            mix-blend-mode: overlay;
+        }
+
+        /* Glassmorphism */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.82);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border: 2px solid rgba(255, 255, 255, 0.6);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
+            border-radius: 24px;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(8px);
+            border: 2px solid rgba(255, 255, 255, 0.7);
+            border-radius: 20px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Camera Hand Cursor */
+        #cursor-kamera {
+            position: fixed;
+            width: 56px;
+            height: 56px;
+            margin-left: -28px;
+            margin-top: -28px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(79, 179, 246, 0.9) 0%, rgba(25, 181, 201, 0.6) 70%, transparent 100%);
+            border: 3px solid #FFFFFF;
+            box-shadow: 0 0 20px #4FB3F6, inset 0 0 10px #FFFFFF;
+            pointer-events: none;
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.1s ease;
+        }
+
+        #cursor-kamera::after {
+            content: '';
+            width: 16px;
+            height: 16px;
+            background: #FFC93C;
+            border-radius: 50%;
+            box-shadow: 0 0 10px #FFC93C;
+        }
+
+        /* Hover camera target styling */
+        .target-kamera {
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+        }
+
+        .target-kamera.hover-kamera {
+            transform: scale(1.05) translateY(-3px);
+            box-shadow: 0 0 25px rgba(255, 201, 60, 0.8), 0 10px 30px rgba(0,0,0,0.2) !important;
+            border-color: #FFC93C !important;
+        }
+
+        /* Mystery Box Styling */
+        .mystery-box {
+            background: linear-gradient(135deg, #D45BB5 0%, #7B4FC9 100%);
+            border: 4px solid #FFC93C;
+            box-shadow: 0 10px 25px rgba(123, 79, 201, 0.4);
+            animation: floatBox 3s ease-in-out infinite;
+        }
+
+        .mystery-box:nth-child(even) {
+            animation-delay: 1.5s;
+        }
+
+        @keyframes floatBox {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-8px) rotate(1deg); }
+        }
+
+        .mystery-box.terjawab {
+            background: linear-gradient(135deg, #cbd5e1 0%, #94a3b8 100%) !important;
+            border-color: #64748b !important;
+            box-shadow: none !important;
+            animation: none !important;
+            opacity: 0.65;
+            cursor: not-allowed;
+        }
+
+        /* Confetti Animation */
+        @keyframes fall {
+            0% { transform: translateY(-20vh) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(105vh) rotate(720deg); opacity: 0; }
+        }
+
+        .confetti-piece {
+            position: fixed;
+            top: -20px;
+            width: 14px;
+            height: 14px;
+            background: #FFC93C;
+            animation: fall 3s linear infinite;
+            z-index: 9998;
+            border-radius: 50%;
+        }
+    </style>
+</head>
+<body class="h-screen w-screen flex flex-col justify-between p-4 relative">
+
+    <div class="waterfall-bg"></div>
+    <div class="waterfall-overlay"></div>
+
+    <!-- Custom Camera Hand Cursor -->
+    <div id="cursor-kamera">
+        <svg id="cursor-progress-svg" class="absolute -inset-2 w-16 h-16 hidden" viewBox="0 0 36 36">
+            <path class="text-amber-400" stroke-dasharray="100, 100" stroke-width="4" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+        </svg>
+    </div>
+
+    <!-- Kamera Widget -->
+    <div id="kamera-widget-container" class="fixed bottom-4 left-4 z-50 glass-panel p-2 flex flex-col items-center shadow-lg rounded-2xl border-2 border-white/80 transition-all duration-300">
+        <div class="flex justify-between items-center w-full px-1 mb-1">
+            <div class="flex items-center gap-2 text-xs font-semibold text-slate-800">
+                <span id="camera-status-dot" class="w-3 h-3 rounded-full bg-rose-500 inline-block animate-pulse"></span>
+                <span id="camera-status-text">Kamera Siap</span>
+            </div>
+            <button onclick="toggleMinimizeKamera()" id="btn-minimize-kamera" class="w-6 h-6 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-700 flex items-center justify-center text-xs target-kamera shadow-sm ml-3" title="Minimalkan Kamera">
+                <i class="fa-solid fa-minus" id="icon-minimize"></i>
+            </button>
+        </div>
+        <div id="kamera-view-box" class="relative w-[160px] h-[120px] bg-slate-900 rounded-xl overflow-hidden shadow-inner transition-all duration-300">
+            <video id="webcam" class="absolute inset-0 w-full h-full object-cover -scale-x-100" autoplay playsinline muted></video>
+            <canvas id="output_canvas" class="absolute inset-0 w-full h-full -scale-x-100 pointer-events-none"></canvas>
+        </div>
+    </div>
+
+    <!-- Top Status Bar -->
+    <header class="w-full max-w-7xl mx-auto flex justify-between items-center px-6 py-3 glass-panel z-10">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-teal-400 to-emerald-500 flex items-center justify-center text-white shadow-md">
+                <i class="fa-solid fa-water text-lg"></i>
+            </div>
+            <div>
+                <h1 class="text-lg font-bold text-slate-800 tracking-wide">MYSTERY BOX: BREAK EVEN POINT</h1>
+                <p class="text-xs text-slate-600 font-medium">Pengembang: <strong>Eduardus Rudy Sebatu</strong> (Guru Prakarya SMAN 1 Rahong Utara)</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-4">
+            <div id="bank-soal-badge" class="px-4 py-1.5 rounded-full bg-teal-100/90 text-teal-800 text-sm font-bold shadow-sm border border-teal-300">
+                Bank soal: memuat...
+            </div>
+            <button onclick="toggleAudio()" id="btn-audio" class="w-11 h-11 rounded-full glass-card flex items-center justify-center text-slate-700 hover:text-teal-600 target-kamera shadow-sm">
+                <i class="fa-solid fa-volume-high text-lg"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Container Area -->
+    <main class="w-full max-w-7xl mx-auto flex-1 flex items-center justify-center relative my-3 z-10 overflow-hidden">
+
+        <!-- LAYAR 1 - MULAI -->
+        <section id="layar-1" class="app-screen w-full h-full flex flex-col items-center justify-center text-center p-8 glass-panel animate-fadeIn">
+            <div class="max-w-2xl mx-auto flex flex-col items-center">
+                <div class="w-24 h-24 rounded-3xl bg-gradient-to-tr from-amber-400 to-pink-500 flex items-center justify-center text-white shadow-xl mb-6 border-4 border-white animate-bounce">
+                    <i class="fa-solid fa-gift text-4xl"></i>
+                </div>
+                <h2 class="text-4xl lg:text-5xl font-extrabold text-slate-800 mb-2 drop-shadow-sm">
+                    Misteri Peti Break Even Point
+                </h2>
+                <p class="text-xs font-semibold text-teal-700 bg-teal-100 px-4 py-1 rounded-full mb-4 border border-teal-300">
+                    Pengembang: Eduardus Rudy Sebatu, Guru Prakarya SMAN 1 Rahong Utara
+                </p>
+                <p class="text-base lg:text-lg text-slate-700 font-medium mb-8 leading-relaxed">
+                    Angkat tangan, gerakkan telunjuk di depan kamera, lalu <strong>cubit</strong> atau <strong>tahan selama 1 detik</strong> di atas tombol untuk memilih tanpa menyentuh layar!
+                </p>
+
+                <div id="div-aktifkan-kamera" class="flex flex-col items-center gap-4">
+                    <button id="btn-aktifkan-kamera" onclick="inisialisasiKamera()" class="px-8 py-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-bold text-xl shadow-xl hover:shadow-2xl target-kamera border-2 border-white/80 flex items-center gap-3">
+                        <i class="fa-solid fa-video text-2xl"></i> AKTIFKAN KAMERA
+                    </button>
+                    <p class="text-xs text-slate-600">Pastikan pencahayaan cukup dan tangan Anda terlihat jelas oleh kamera.</p>
+                </div>
+
+                <div id="div-mulai-game" class="hidden flex flex-col items-center gap-4">
+                    <div class="px-6 py-2 rounded-full bg-emerald-100 text-emerald-800 font-bold text-sm border border-emerald-300 animate-pulse">
+                        <i class="fa-solid fa-check-circle mr-2"></i> Tangan terdeteksi! Siap bermain.
+                    </div>
+                    <button onclick="pindahKeLayar('layar-2')" class="px-10 py-5 rounded-2xl bg-gradient-to-r from-amber-400 to-pink-500 text-white font-extrabold text-2xl shadow-xl hover:shadow-2xl target-kamera border-4 border-white">
+                        MULAI PETUALANGAN <i class="fa-solid fa-arrow-right ml-2"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Teacher Mode Button at Bottom Right -->
+            <button onclick="bukaModeGuru()" class="absolute bottom-6 right-6 px-4 py-2 rounded-xl bg-slate-800/80 hover:bg-slate-900 text-white text-xs font-bold target-kamera shadow-md flex items-center gap-2">
+                <i class="fa-solid fa-gear"></i> Mode Guru
+            </button>
+        </section>
+
+        <!-- LAYAR 2 - PAPAN PETI & SKOR -->
+        <section id="layar-2" class="app-screen hidden w-full h-full grid grid-cols-12 gap-6 p-6">
+            <!-- Left Grid: Mystery Boxes (72%) -->
+            <div class="col-span-12 lg:col-span-9 glass-panel p-6 flex flex-col justify-between">
+                <div class="flex justify-between items-center mb-4">
+                    <div>
+                        <h3 class="text-2xl font-bold text-slate-800">Pilih Peti Misteri BEP</h3>
+                        <p class="text-sm text-slate-600">Pilih salah satu peti untuk membuka tantangan soal Kewirausahaan.</p>
+                    </div>
+                    <div class="px-4 py-2 rounded-xl bg-teal-600 text-white font-bold text-sm shadow">
+                        Peti Tersisa: <span id="peti-tersisa-count">10</span>/10
+                    </div>
+                </div>
+
+                <div id="grid-peti" class="grid grid-cols-5 gap-4 flex-1 items-center justify-center py-2">
+                    <!-- Dynamically generated 10 boxes -->
+                </div>
+
+                <div class="text-center text-xs text-slate-500">
+                    💡 Peti yang sudah terbuka tidak dapat dipilih kembali dalam ronde ini.
+                </div>
+            </div>
+
+            <!-- Right Panel: Live Scoreboard (28%) -->
+            <div class="col-span-12 lg:col-span-3 glass-panel p-5 flex flex-col justify-between">
+                <div>
+                    <h3 class="text-lg font-bold text-slate-800 mb-3 flex items-center gap-2">
+                        <i class="fa-solid fa-trophy text-amber-500"></i> Papan Skor Langsung
+                    </h3>
+                    <div id="live-scoreboard-list" class="space-y-2 max-h-[50vh] overflow-y-auto pr-1">
+                        <div class="text-center text-slate-500 text-sm py-8 italic">
+                            Belum ada pemain.<br>Ayo buka peti pertama!
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-4 pt-3 border-t border-slate-300 flex flex-col gap-3">
+                    <button onclick="bukaPapanSkorPenuh()" class="w-full py-3 rounded-xl bg-gradient-to-r from-teal-500 to-emerald-600 text-white font-bold text-sm shadow-md target-kamera flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-medal"></i> LIHAT PAPAN SKOR
+                    </button>
+                    <button onclick="pindahKeLayar('layar-1')" class="w-full py-2.5 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs target-kamera">
+                        <i class="fa-solid fa-house mr-1"></i> Kembali ke Menu Awal
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- LAYAR 3 - INPUT NAMA -->
+        <section id="layar-3" class="app-screen hidden w-full h-full glass-panel p-6 flex flex-col justify-between">
+            <div class="flex items-center justify-between h-[12vh]">
+                <button onclick="kembaliKeHalamanUtamaDariNama()" class="px-6 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 text-white font-bold text-sm target-kamera shadow flex items-center gap-2">
+                    <i class="fa-solid fa-arrow-left"></i> KEMBALI KE HALAMAN UTAMA
+                </button>
+                <h3 id="judul-pilih-peti" class="text-2xl lg:text-3xl font-extrabold text-slate-800 text-center flex-1">
+                    Peti Terbuka! Masukkan Namamu
+                </h3>
+                <div class="w-[180px]"></div>
+            </div>
+
+            <div class="h-[14vh] flex items-center justify-center">
+                <div id="display-nama-input" class="w-full max-w-xl h-full rounded-2xl bg-white/90 border-4 border-teal-400 flex items-center justify-center px-6 shadow-inner text-3xl lg:text-4xl font-bold text-slate-800 tracking-wider">
+                    <span class="text-slate-400 font-normal text-2xl">Ketuk huruf di bawah...</span>
+                </div>
+            </div>
+
+            <div class="h-[48vh] flex flex-col justify-center items-center gap-2 max-w-5xl mx-auto w-full">
+                <!-- Baris 1 -->
+                <div class="flex justify-center gap-2 w-full">
+                    <button onclick="ketikHuruf('Q')" class="flex-1 h-full rounded-xl bg-white hover:bg-teal-50 text-slate-800 font-bold text-2xl shadow target-kamera border border-slate-200 flex items-center justify-center">Q</button>
+                    <button onclick="ketikHuruf('W')" class="flex-1 h-full rounded-xl bg-white hover:bg-teal-50 text-slate-800 font-bold text-2xl shadow target-kamera border border-slate-200 flex items-center justify-center">W</button>
+                    <button onclick="ketikHuruf('E')" class="flex-1 h-full rounded-xl bg-white hover:bg-teal-50 text-slate-800 font-bold text-2xl shadow target-kamera border border-slate-200 flex items-center justify-center">E</button>
+                    <button onclick="ketikHuruf('R')" class="flex-1 h-full rounded-xl bg-white hover:bg-teal-50 text-slate-800 font-bold text-2xl shadow target-kamera border border-slate-200 flex items-center justify-center">R</button>
+                    <button onclick="ketikHuruf('T')" class="flex-1 h-full rounded-xl bg-white hover:bg-teal-50 text-slate-800 font-bold text-2xl shadow target-kamera border border-slate-200 flex items-center justify-center">T</button>
+                    <button onclick="ketikHuruf('Y')" class="flex-1 h-full rounded-xl bg-white hover:bg-teal-50 text-slate-800 font-bold text-2xl shadow target-kamera border border-slate-200 flex items-center justify-center">Y</button>
+                    <button onclick="ketikHuruf('U')" class="flex-1 h-full rounded-xl bg-white hover:bg-teal-50 text-slate-800 font-bold text-2xl shadow target-kamera border border-slate-200 flex items-center justify-center">U</button>
+                    <button onclick="ketikHuruf('I')" class="flex-1 h-full rounded-xl bg-white hover:bg-teal-50 text-slate-800 font-bold text-2xl shadow target-kamera border border-slate-200 flex items-center justify-center">I</button>
+                    <button onclick="ketikHuruf('O')" class="flex-1 h-full rounded-xl bg-white hover:bg-teal-50 text-slate-800 font-bold text-2xl shadow target-kamera border border-slate-200 flex items-center justify-center">O</button>
+                    <button onclick="ketikHuruf('P')" class="flex-1 h-full rounded-xl bg-white hover:bg-teal-50 text-slate-800 font-bold text-2xl shadow target-kamera border border-slate-200 flex items-center justify-center">P</button>
+                </div>
+                <!-- Baris 2 -->
+                <div class="flex justify-center gap-2 w-full px-6">
+                    <button onclick="ketikHuruf('A')" class="flex-1 h-full rounded-xl bg-white hover:bg-teal-50 text-slate-800 font-bold text-2xl shadow target-kamera border border-slate-200 flex items-center justify-center">A</button>
+                    <button onclick="ketikHuruf('S')" class="flex-1 h-full rounded-xl bg-white hover:bg-teal-50 text-slate-800 font-bold text-2xl shadow target-kamera border border-slate-200 flex items-center justify-center">S</button>
+                    <button onclick="ketikHuruf('D')" class="flex-1 h-full rounded-xl bg-white hover:bg-teal-50 text-slate-800 font-bold text-2xl shadow target-kamera border border-slate-200 flex items-center justify-center">D</button>
+                    <button onclick="ketikHuruf('F')" class="flex-1 h-full rounded-xl bg-white hover:bg-teal-50 text-slate-800 font-bold text-2xl shadow target-kamera border border-slate-200 flex items-center justify-center">F</button>
+                    <button onclick="ketikHuruf('G')" class="flex-1 h-full rounded-xl bg-white hover:bg-teal-50 text-slate-800 font-bold text-2xl shadow target-kamera border border-slate-200 flex items-center justify-center">G</button>
+                    <button onclick="ketikHuruf('H')" class="flex-1 h-full rounded-xl bg-white hover:bg-teal-50 text-slate-800 font-bold text-2xl shadow target-kamera border border-slate-200 flex items-center justify-center">H</button>
+                    <button onclick="ketikHuruf('J')" class="flex-1 h-full rounded-xl bg-white hover:bg-teal-50 text-slate-800 font-bold text-2xl shadow target-kamera border border-slate-200 flex items-center justify-center">J</button>
+                    <button onclick="ketikHuruf('K')" class="flex-1 h-full rounded-xl bg-white hover:bg-teal-50 text-slate-800 font-bold text-2xl shadow target-kamera border border-slate-200 flex items-center justify-center">K</button>
+                    <button onclick="ketikHuruf('L')" class="flex-1 h-full rounded-xl bg-white hover:bg-teal-50 text-slate-800 font-bold text-2xl shadow target-kamera border border-slate-200 flex items-center justify-center">L</button>
+                </div>
+                <!-- Baris 3 -->
+                <div class="flex justify-center gap-2 w-full px-12">
+                    <button onclick="ketikHuruf('Z')" class="flex-1 h-full rounded-xl bg-white hover:bg-teal-50 text-slate-800 font-bold text-2xl shadow target-kamera border border-slate-200 flex items-center justify-center">Z</button>
+                    <button onclick="ketikHuruf('X')" class="flex-1 h-full rounded-xl bg-white hover:bg-teal-50 text-slate-800 font-bold text-2xl shadow target-kamera border border-slate-200 flex items-center justify-center">X</button>
+                    <button onclick="ketikHuruf('C')" class="flex-1 h-full rounded-xl bg-white hover:bg-teal-50 text-slate-800 font-bold text-2xl shadow target-kamera border border-slate-200 flex items-center justify-center">C</button>
+                    <button onclick="ketikHuruf('V')" class="flex-1 h-full rounded-xl bg-white hover:bg-teal-50 text-slate-800 font-bold text-2xl shadow target-kamera border border-slate-200 flex items-center justify-center">V</button>
+                    <button onclick="ketikHuruf('B')" class="flex-1 h-full rounded-xl bg-white hover:bg-teal-50 text-slate-800 font-bold text-2xl shadow target-kamera border border-slate-200 flex items-center justify-center">B</button>
+                    <button onclick="ketikHuruf('N')" class="flex-1 h-full rounded-xl bg-white hover:bg-teal-50 text-slate-800 font-bold text-2xl shadow target-kamera border border-slate-200 flex items-center justify-center">N</button>
+                    <button onclick="ketikHuruf('M')" class="flex-1 h-full rounded-xl bg-white hover:bg-teal-50 text-slate-800 font-bold text-2xl shadow target-kamera border border-slate-200 flex items-center justify-center">M</button>
+                </div>
+            </div>
+
+            <div class="h-[14vh] flex items-center justify-between gap-4">
+                <button onclick="ketikSpasi()" class="w-[20vw] h-full rounded-2xl bg-white hover:bg-slate-100 text-slate-800 font-bold text-xl shadow target-kamera border border-slate-300">
+                    SPASI
+                </button>
+                <button onclick="hapusHuruf()" class="w-[15vw] h-full rounded-2xl bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold text-xl shadow target-kamera border border-rose-300">
+                    <i class="fa-solid fa-delete-left mr-2"></i> HAPUS
+                </button>
+                <div class="flex flex-col items-center flex-1 h-full">
+                    <button id="btn-simpan-nama" onclick="simpanNamaDanBukaSoal()" disabled class="w-full h-full rounded-2xl bg-slate-300 text-slate-500 font-extrabold text-2xl shadow flex items-center justify-center gap-3 transition-all duration-300">
+                        <i class="fa-solid fa-check-circle"></i> SIMPAN NAMA
+                    </button>
+                </div>
+            </div>
+            <div class="text-center text-xs text-slate-600 pb-1">
+                Minimal 2 huruf untuk mengaktifkan tombol Simpan Nama.
+            </div>
+        </section>
+
+        <!-- LAYAR 4 - SOAL -->
+        <section id="layar-4" class="app-screen hidden w-full h-full glass-panel p-6 flex flex-col justify-between">
+            <div class="flex justify-between items-center bg-white/70 px-6 py-3 rounded-2xl shadow-sm">
+                <div class="flex items-center gap-3">
+                    <span id="label-soal-box" class="px-4 py-1.5 rounded-xl bg-teal-600 text-white font-bold text-sm">Peti #1</span>
+                    <span id="label-soal- pemain" class="text-sm font-bold text-slate-700">Pemain: Andi</span>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div id="countdown-baca" class="px-4 py-1.5 rounded-xl bg-amber-100 text-amber-800 font-extrabold text-sm border border-amber-300 animate-pulse">
+                        ⏳ Baca soal dulu: 5s
+                    </div>
+                    <div class="text-sm font-bold text-slate-700">Waktu: <span id="timer-soal">0</span>s</div>
+                </div>
+            </div>
+
+            <!-- Question Box -->
+            <div class="my-4 p-6 glass-card flex-1 flex flex-col justify-center items-center text-center">
+                <h4 id="teks-soal" class="text-xl lg:text-2xl font-bold text-slate-800 leading-relaxed max-w-4xl">
+                    Memuat pertanyaan Break Even Point...
+                </h4>
+            </div>
+
+            <!-- Options Grid A-D -->
+            <div class="grid grid-cols-2 gap-4 h-[35vh]">
+                <div onclick="pilihOpsi('A')" id="opsi-card-A" class="glass-card p-4 flex items-center gap-4 opacity-50 pointer-events-none target-kamera border-2 border-slate-200">
+                    <div class="w-12 h-12 rounded-xl bg-teal-500 text-white font-extrabold text-xl flex items-center justify-center shadow">A</div>
+                    <div id="teks-opsi-A" class="text-base font-bold text-slate-800 flex-1">Pilihan A</div>
+                </div>
+                <div onclick="pilihOpsi('B')" id="opsi-card-B" class="glass-card p-4 flex items-center gap-4 opacity-50 pointer-events-none target-kamera border-2 border-slate-200">
+                    <div class="w-12 h-12 rounded-xl bg-teal-500 text-white font-extrabold text-xl flex items-center justify-center shadow">B</div>
+                    <div id="teks-opsi-B" class="text-base font-bold text-slate-800 flex-1">Pilihan B</div>
+                </div>
+                <div onclick="pilihOpsi('C')" id="opsi-card-C" class="glass-card p-4 flex items-center gap-4 opacity-50 pointer-events-none target-kamera border-2 border-slate-200">
+                    <div class="w-12 h-12 rounded-xl bg-teal-500 text-white font-extrabold text-xl flex items-center justify-center shadow">C</div>
+                    <div id="teks-opsi-C" class="text-base font-bold text-slate-800 flex-1">Pilihan C</div>
+                </div>
+                <div onclick="pilihOpsi('D')" id="opsi-card-D" class="glass-card p-4 flex items-center gap-4 opacity-50 pointer-events-none target-kamera border-2 border-slate-200">
+                    <div class="w-12 h-12 rounded-xl bg-teal-500 text-white font-extrabold text-xl flex items-center justify-center shadow">D</div>
+                    <div id="teks-opsi-D" class="text-base font-bold text-slate-800 flex-1">Pilihan D</div>
+                </div>
+            </div>
+
+            <div class="mt-4 flex justify-end">
+                <button id="btn-kunci-jawaban" onclick="kunciJawaban()" disabled class="px-8 py-3 rounded-2xl bg-slate-300 text-slate-500 font-bold text-lg shadow">
+                    Pilih salah satu jawaban dulu
+                </button>
+            </div>
+        </section>
+
+        <!-- LAYAR 5 - HASIL -->
+        <section id="layar-5" class="app-screen hidden w-full h-full glass-panel p-8 flex flex-col justify-between items-center text-center">
+            <div class="max-w-3xl mx-auto flex flex-col items-center justify-center flex-1">
+                <div id="hasil-icon-container" class="w-24 h-24 rounded-full bg-emerald-500 flex items-center justify-center text-white text-5xl shadow-xl mb-6 border-4 border-white animate-bounce">
+                    <i class="fa-solid fa-award"></i>
+                </div>
+                <h3 id="hasil-judul" class="text-3xl lg:text-4xl font-extrabold text-slate-800 mb-2">
+                    Hebat, Andi!
+                </h3>
+                <p id="hasil-poin-detail" class="text-lg font-bold text-teal-700 mb-6 px-6 py-2 rounded-xl bg-teal-100 border border-teal-300">
+                    10 poin + 5 bonus cepat = 15 poin
+                </p>
+
+                <div class="w-full glass-card p-6 text-left mb-6 max-h-[35vh] overflow-y-auto">
+                    <h4 class="font-bold text-slate-800 mb-2 flex items-center gap-2">
+                        <i class="fa-solid fa-book-open text-teal-600"></i> Pembahasan:
+                    </h4>
+                    <p id="hasil-pembahasan-teks" class="text-sm lg:text-base text-slate-700 leading-relaxed">
+                        Pembahasan soal akan ditampilkan di sini.
+                    </p>
+                </div>
+
+                <button onclick="kembaliKePeti()" class="px-10 py-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-extrabold text-xl shadow-xl target-kamera border-2 border-white">
+                    LANJUTKAN <i class="fa-solid fa-arrow-right ml-2"></i>
+                </button>
+            </div>
+        </section>
+
+        <!-- LAYAR 6 - PAPAN SKOR LAYAR PENUH & PODIUM -->
+        <section id="layar-6" class="app-screen hidden w-full h-full glass-panel p-6 flex flex-col justify-between">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-2xl font-extrabold text-slate-800 flex items-center gap-3">
+                    <i class="fa-solid fa-crown text-amber-500"></i> PAPAN SKOR & PODIUM JUARA
+                </h3>
+                <div class="flex gap-3">
+                    <button onclick="mainLagiSkorTetap()" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-teal-500 to-emerald-600 text-white font-bold text-sm target-kamera shadow">
+                        <i class="fa-solid fa-rotate-right mr-1"></i> MAIN LAGI (SKOR TETAP)
+                    </button>
+                    <button onclick="konfirmasiMulaiBaru()" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-rose-500 to-pink-600 text-white font-bold text-sm target-kamera shadow">
+                        <i class="fa-solid fa-trash mr-1"></i> MULAI BARU (RESET)
+                    </button>
+                </div>
+            </div>
+
+            <!-- Podium / Scores Table -->
+            <div class="grid grid-cols-12 gap-6 flex-1 overflow-hidden">
+                <div class="col-span-12 lg:col-span-8 glass-card p-4 overflow-y-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="border-b-2 border-slate-300 text-slate-700 text-sm">
+                                <th class="p-3">Peringkat</th>
+                                <th class="p-3">Nama Pemain</th>
+                                <th class="p-3 text-center">Benar</th>
+                                <th class="p-3 text-center">Salah</th>
+                                <th class="p-3 text-center">Bonus</th>
+                                <th class="p-3 text-right">Total Skor</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabel-skor-lengkap" class="divide-y divide-slate-200 text-slate-800 text-sm font-medium">
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="col-span-12 lg:col-span-4 glass-card p-4 flex flex-col items-center justify-center">
+                    <h4 class="font-bold text-slate-800 mb-4 flex items-center gap-2">
+                        <i class="fa-solid fa-medal text-amber-500"></i> Podium Juara
+                    </h4>
+                    <div id="podium-container" class="w-full flex items-end justify-center gap-3 h-[45vh] pt-6">
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-4 flex justify-center">
+                <button onclick="pindahKeLayar('layar-2')" class="px-8 py-3 rounded-2xl bg-slate-800 hover:bg-slate-900 text-white font-bold text-sm target-kamera shadow">
+                    <i class="fa-solid fa-arrow-left mr-2"></i> KEMBALI KE KISI PETI
+                </button>
+            </div>
+        </section>
+
+        <!-- TEACHER MODE MODAL -->
+        <div id="modal-guru" class="fixed inset-0 bg-slate-900/70 backdrop-blur-md z-50 hidden flex items-center justify-center p-6">
+            <div class="glass-panel w-full max-w-2xl p-6 flex flex-col max-h-[90vh]">
+                <div class="flex justify-between items-center mb-4 pb-3 border-b border-slate-300">
+                    <h3 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                        <i class="fa-solid fa-gear text-teal-600"></i> Mode Guru - Bank Soal Word (.docx)
+                    </h3>
+                    <button onclick="tutupModeGuru()" class="w-10 h-10 rounded-full bg-slate-200 hover:bg-rose-500 hover:text-white flex items-center justify-center text-slate-700 font-bold transition">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+
+                <div class="flex-1 overflow-y-auto space-y-4">
+                    <div class="p-4 rounded-xl bg-teal-50 border border-teal-200 text-teal-900 text-sm">
+                        <strong>Petunjuk Guru:</strong> Unggah file Word (.docx) berisi soal Break Even Point.
+                        <br>1. Pertanyaan di awal.
+                        <br>2. Pilihan A, B, C, D diawali huruf A., B., C., D.
+                        <br>3. Kunci jawaban: <strong>Jawaban: X</strong>
+                        <br>4. Pembahasan: <strong>Pembahasan: ...</strong>
+                    </div>
+
+                    <div class="flex flex-col items-center justify-center border-2 border-dashed border-slate-400 rounded-2xl p-8 bg-white/50 text-center">
+                        <i class="fa-solid fa-file-word text-5xl text-teal-600 mb-3"></i>
+                        <label class="px-6 py-3 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-bold text-sm shadow cursor-pointer target-kamera">
+                            <i class="fa-solid fa-upload mr-2"></i> Pilih File .docx Soal
+                            <input type="file" id="input-file-word" accept=".docx" class="hidden" onchange="unggahFileWord(event)">
+                        </label>
+                        <p id="nama-file-info" class="text-xs text-slate-600 mt-2">Belum ada file yang dipilih</p>
+                    </div>
+
+                    <div id="pratinjau-bank-soal" class="hidden p-4 rounded-xl bg-white border border-slate-200 text-sm text-slate-800">
+                        <h4 class="font-bold text-teal-700 mb-1">Pratinjau Bank Soal:</h4>
+                        <p id="info-jumlah-soal-baca" class="text-xs text-slate-600 mb-2"></p>
+                        <div id="list-pratinjau-soal" class="max-h-36 overflow-y-auto space-y-1 text-xs text-slate-700"></div>
+                    </div>
+                </div>
+
+                <div class="mt-4 pt-3 border-t border-slate-300 flex justify-between items-center">
+                    <button onclick="resetKeBankBawaan()" class="px-4 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs">
+                        Kembali ke Soal Bawaan
+                    </button>
+                    <div class="flex gap-2">
+                        <button onclick="tutupModeGuru()" class="px-5 py-2 rounded-xl bg-slate-800 text-white font-bold text-xs">
+                            Tutup Mode Guru
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL KONFIRMASI MULAI BARU -->
+        <div id="modal-konfirmasi-reset" class="fixed inset-0 bg-slate-900/70 backdrop-blur-md z-50 hidden flex items-center justify-center p-6">
+            <div class="glass-panel w-full max-w-md p-6 text-center">
+                <div class="w-16 h-16 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center text-3xl mx-auto mb-4">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                </div>
+                <h3 class="text-xl font-bold text-slate-800 mb-2">Mulai Baru (Reset Total)?</h3>
+                <p class="text-sm text-slate-600 mb-6">Semua skor pemain, riwayat peti, dan kemajuan ronde akan dihapus permanen.</p>
+                <div class="flex gap-3 justify-center">
+                    <button onclick="tutupKonfirmasiReset()" class="px-6 py-2.5 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-sm target-kamera">
+                        BATAL
+                    </button>
+                    <button onclick="eksekusiMulaiBaru()" class="px-6 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-sm target-kamera shadow">
+                        YA, RESET
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        const DEFAULT_BANK_SOAL = [
+            {
+                id: 1,
+                soal: "Apa yang dimaksud dengan Break Even Point (BEP) dalam wirausaha?",
+                pilihan: {
+                    A: "Kondisi di mana total pendapatan sama dengan total biaya.",
+                    B: "Kondisi di mana perusahaan mengalami kerugian besar.",
+                    C: "Kondisi di mana keuntungan penjualan mencapai titik maksimal.",
+                    D: "Jumlah modal awal yang harus disetor oleh investor."
+                },
+                kunci: "A",
+                pembahasan: "Break Even Point (BEP) adalah titik impas di mana total pendapatan (revenue) sama dengan total biaya (cost), sehingga laba bersih adalah nol."
+            },
+            {
+                id: 2,
+                soal: "Biaya yang besarnya berubah-ubah sesuai dengan jumlah volume produksi disebut...",
+                pilihan: {
+                    A: "Biaya Tetap (Fixed Cost)",
+                    B: "Biaya Variabel (Variable Cost)",
+                    C: "Biaya Administrasi",
+                    D: "Biaya Penyusutan"
+                },
+                kunci: "B",
+                pembahasan: "Biaya variabel (Variable Cost) adalah biaya yang totalnya berubah secara proporsional dengan tingkat volume produksi (misal: bahan baku)."
+            },
+            {
+                id: 3,
+                soal: "Manakah di bawah ini yang merupakan contoh dari Biaya Tetap (Fixed Cost)?",
+                pilihan: {
+                    A: "Pembelian bahan baku kain untuk baju",
+                    B: "Upah buruh borongan per potong pakaian",
+                    C: "Biaya sewa gedung tempat usaha per tahun",
+                    D: "Komisi penjualan untuk tenaga sales"
+                },
+                kunci: "C",
+                pembahasan: "Biaya sewa gedung adalah contoh biaya tetap karena jumlahnya tidak berubah meskipun jumlah produksi meningkat atau menurun."
+            },
+            {
+                id: 4,
+                soal: "Rumus untuk menghitung Break Even Point dalam Unit (BEP Unit) adalah...",
+                pilihan: {
+                    A: "Biaya Tetap / (Harga per unit - Biaya Variabel per unit)",
+                    B: "Biaya Tetap / (Harga per unit + Biaya Variabel per unit)",
+                    C: "Total Biaya / Total Pendapatan",
+                    D: "Biaya Variabel / Harga per unit"
+                },
+                kunci: "A",
+                pembahasan: "BEP Unit dihitung dengan membagi total Biaya Tetap dengan Margin Kontribusi per unit (Harga jual per unit dikurangi Biaya variabel per unit)."
+            },
+            {
+                id: 5,
+                soal: "Jika Biaya Tetap produksi kue adalah Rp 2.000.000, Harga Jual Rp 20.000/buah, dan Biaya Variabel Rp 10.000/buah, berapakah BEP Unitnya?",
+                pilihan: {
+                    A: "100 unit",
+                    B: "200 unit",
+                    C: "300 unit",
+                    D: "400 unit"
+                },
+                kunci: "B",
+                pembahasan: "BEP Unit = 2.000.000 / (20.000 - 10.000) = 2.000.000 / 10.000 = 200 unit."
+            },
+            {
+                id: 6,
+                soal: "Apa manfaat utama analisis Break Even Point bagi seorang wirausahawan?",
+                pilihan: {
+                    A: "Mengetahui jumlah minimum produk yang harus dijual agar tidak rugi.",
+                    B: "Menaikkan pajak perusahaan secara otomatis.",
+                    C: "Menghilangkan seluruh risiko bisnis di masa depan.",
+                    D: "Menentukan jumlah gaji direktur utama."
+                },
+                kunci: "A",
+                pembahasan: "Analisis BEP membantu wirausahawan mengetahui batas minimum penjualan agar usaha tidak mengalami kerugian."
+            },
+            {
+                id: 7,
+                soal: "Jika suatu usaha berada di bawah titik Break Even Point, maka kondisi finansial usaha tersebut adalah...",
+                pilihan: {
+                    A: "Memperoleh laba besar",
+                    B: "Mengalami kerugian",
+                    C: "Berada di titik impas",
+                    D: "Modal kembali 200%"
+                },
+                kunci: "B",
+                pembahasan: "Jika penjualan di bawah titik BEP, total pendapatan lebih kecil daripada total biaya, sehingga usaha mengalami kerugian."
+            },
+            {
+                id: 8,
+                soal: "Komponen yang diperlukan untuk menghitung BEP dalam Rupiah (BEP Nilai Penjualan) adalah...",
+                pilihan: {
+                    A: "Biaya Tetap, Biaya Variabel, dan Harga Jual",
+                    B: "Jumlah karyawan dan jam kerja",
+                    C: "Luas bangunan pabrik",
+                    D: "Jumlah modal pinjaman bank"
+                },
+                kunci: "A",
+                pembahasan: "BEP Rupiah membutuhkan Biaya Tetap, serta kontribusi margin atau rasio biaya variabel terhadap harga jual."
+            },
+            {
+                id: 9,
+                soal: "Apa yang terjadi pada titik BEP jika harga jual per unit dinaikkan (dengan asumsi biaya tetap dan variabel tetap)?",
+                pilihan: {
+                    A: "BEP unit akan turun (lebih sedikit unit yang harus dijual)",
+                    B: "BEP unit akan naik (lebih banyak unit yang harus dijual)",
+                    C: "BEP unit tidak berubah sama sekali",
+                    D: "Usaha pasti langsung gulung tikar"
+                },
+                kunci: "A",
+                pembahasan: "Harga jual yang lebih tinggi memperbesar margin kontribusi per unit, sehingga jumlah unit yang harus dijual untuk mencapai impas menjadi lebih sedikit."
+            },
+            {
+                id: 10,
+                soal: "Dalam konteks kewirausahaan kerajinan, biaya pembelian lem, benang, dan kemasan dikategorikan sebagai...",
+                pilihan: {
+                    A: "Biaya Tetap",
+                    B: "Biaya Variabel",
+                    C: "Biaya Investasi Awal",
+                    D: "Biaya Penyusutan Alat"
+                },
+                kunci: "B",
+                pembahasan: "Bahan-bahan habis pakai seperti lem, benang, dan kemasan untuk setiap produk kerajinan termasuk ke dalam biaya variabel."
+            },
+            {
+                id: 11,
+                soal: "Apa yang dimaksud dengan Margin of Safety (Margin Pengamanan) dalam analisis BEP?",
+                pilihan: {
+                    A: "Batas penurunan penjualan yang dapat ditoleransi sebelum perusahaan mengalami kerugian.",
+                    B: "Jumlah keuntungan maksimal yang bisa diperoleh dalam sebulan.",
+                    C: "Cadangan kas darurat untuk membayar pajak perusahaan.",
+                    D: "Jumlah modal pinjaman dari bank komersial."
+                },
+                kunci: "A",
+                pembahasan: "Margin of Safety adalah selisih antara penjualan yang dianggarkan atau aktual dengan penjualan pada titik BEP, menunjukkan seberapa jauh penjualan bisa turun sebelum merugi."
+            },
+            {
+                id: 12,
+                soal: "Bagaimana rumus untuk menghitung BEP dalam bentuk Nilai Penjualan (Rupiah)?",
+                pilihan: {
+                    A: "Biaya Tetap / (1 - (Biaya Variabel Total / Penjualan Total))",
+                    B: "Biaya Tetap + Biaya Variabel + Harga Jual",
+                    C: "Total Pendapatan / Total Biaya Produksi",
+                    D: "(Harga Jual x Jumlah Unit) - Biaya Tetap"
+                },
+                kunci: "A",
+                pembahasan: "BEP Nilai Penjualan (Rupiah) dihitung dengan membagi Biaya Tetap dengan rasio kontribusi margin terhadap penjualan (1 - (Biaya Variabel / Penjualan))."
+            },
+            {
+                id: 13,
+                soal: "Jika suatu usaha memiliki Biaya Tetap Rp 5.000.000 dan Margin Kontribusi per unit Rp 25.000, berapakah BEP dalam unitnya?",
+                pilihan: {
+                    A: "100 unit",
+                    B: "150 unit",
+                    C: "200 unit",
+                    D: "250 unit"
+                },
+                kunci: "C",
+                pembahasan: "BEP Unit = Biaya Tetap / Margin Kontribusi per unit = 5.000.000 / 25.000 = 200 unit."
+            },
+            {
+                id: 14,
+                soal: "Apa dampak kenaikan Biaya Tetap (seperti kenaikan sewa tempat) terhadap titik Break Even Point (BEP)?",
+                pilihan: {
+                    A: "BEP akan bergeser naik (butuh penjualan lebih banyak untuk impas)",
+                    B: "BEP akan turun (lebih cepat mencapai impas)",
+                    C: "BEP tidak mengalami perubahan sama sekali",
+                    D: "Perusahaan langsung mendapatkan keuntungan berlipat ganda"
+                },
+                kunci: "A",
+                pembahasan: "Kenaikan biaya tetap memperbesar beban yang harus ditutup, sehingga titik impas (BEP) bergeser naik (memerlukan unit atau omset penjualan yang lebih tinggi)."
+            },
+            {
+                id: 15,
+                soal: "Manakah yang termasuk komponen perhitungan Margin Kontribusi (Contribution Margin)?",
+                pilihan: {
+                    A: "Harga Jual per unit dikurangi Biaya Variabel per unit",
+                    B: "Biaya Tetap ditambah Biaya Variabel",
+                    C: "Total Pendapatan dikurangi Biaya Tetap",
+                    D: "Laba bersih dibagi jumlah karyawan"
+                },
+                kunci: "A",
+                pembahasan: "Margin kontribusi per unit adalah selisih antara harga jual per unit dengan biaya variabel per unit, yang digunakan untuk menutup biaya tetap dan menghasilkan laba."
+            },
+            {
+                id: 16,
+                soal: "Dalam perencanaan usaha kerajinan, biaya listrik pabrik dan penyusutan mesin secara proporsional umumnya dimasukkan ke dalam kelompok...",
+                pilihan: {
+                    A: "Biaya Tetap atau Biaya Semitetap",
+                    B: "Biaya Variabel murni",
+                    C: "Pendapatan operasional",
+                    D: "Pajak penghasilan akhir"
+                },
+                kunci: "A",
+                pembahasan: "Biaya listrik operasional dan penyusutan mesin sering kali dikategorikan sebagai biaya tetap atau semitetap karena tidak berubah secara langsung setiap kali satu unit produk dibuat."
+            },
+            {
+                id: 17,
+                soal: "Apa tujuan utama seorang wirausahawan melakukan analisis sensitivitas terhadap BEP?",
+                pilihan: {
+                    A: "Melihat bagaimana perubahan harga jual atau biaya terhadap pencapaian laba dan titik impas.",
+                    B: "Menentukan warna logo produk yang paling disukai konsumen.",
+                    C: "Menghitung jumlah cuti karyawan dalam satu tahun.",
+                    D: "Memilih lokasi kantor pusat perusahaan."
+                },
+                kunci: "A",
+                pembahasan: "Analisis sensitivitas membantu wirausahawan menguji skenario perubahan (misal harga naik/turun) terhadap posisi titik impas dan profitabilitas usaha."
+            },
+            {
+                id: 18,
+                soal: "Jika rasio biaya variabel terhadap penjualan adalah 60%, berapa besarnya rasio margin kontribusi (Contribution Margin Ratio)?",
+                pilihan: {
+                    A: "40%",
+                    B: "60%",
+                    C: "100%",
+                    D: "20%"
+                },
+                kunci: "A",
+                pembahasan: "Rasio margin kontribusi adalah 100% dikurangi rasio biaya variabel (100% - 60% = 40%)."
+            },
+            {
+                id: 19,
+                soal: "Mengapa analisis Break Even Point sangat penting bagi usaha rintisan (startup) di bidang kerajinan/prakarya?",
+                pilihan: {
+                    A: "Untuk mengetahui target penjualan minimal agar modal awal terselamatkan dan tidak rugi.",
+                    B: "Agar produk bisa dijual dengan harga setinggi-tingginya tanpa batas.",
+                    C: "Untuk menghilangkan semua persaingan di pasar bebas.",
+                    D: "Agar terbebas dari kewajiban membayar upah karyawan."
+                },
+                kunci: "A",
+                pembahasan: "Usaha rintisan sangat membutuhkan BEP untuk menetapkan target penjualan minimal dan mengontrol arus kas agar terhindar dari kebangkrutan di awal berdiri."
+            },
+            {
+                id: 20,
+                soal: "Apa yang terjadi jika volume penjualan aktual jauh di atas titik Break Even Point?",
+                pilihan: {
+                    A: "Perusahaan memperoleh laba (keuntungan) yang semakin besar.",
+                    B: "Perusahaan mengalami kerugian operasional yang parah.",
+                    C: "Perusahaan berada tepat di titik impas (laba nol).",
+                    D: "Perusahaan wajib melikuidasi asetnya."
+                },
+                kunci: "A",
+                pembahasan: "Penjualan di atas titik BEP berarti seluruh biaya telah tertutup, sehingga setiap tambahan penjualan murni menjadi keuntungan (laba) perusahaan."
+            }
+        ];
+
+        let bankSoalAktif = JSON.parse(localStorage.getItem('bep_bank_soal')) || DEFAULT_BANK_SOAL;
+        let soalRonde = [];
+        let statusPetiRonde = JSON.parse(localStorage.getItem('bep_status_peti')) || {};
+        let penempatanPeti = JSON.parse(localStorage.getItem('bep_penempatan_peti')) || {};
+        let soalTerpakai = JSON.parse(localStorage.getItem('bep_soal_terpakai')) || [];
+        let papanSkor = JSON.parse(localStorage.getItem('bep_skor')) || [];
+
+        let pemainAktif = "";
+        let kotakAktifNomor = null;
+        let soalAktifObj = null;
+        let pilihanTerpilih = null;
+        let waktuMulaiSoal = 0;
+        let timerSoalInterval = null;
+        let detikSoal = 0;
+        let bacaCountdownInterval = null;
+        let sisaBacaCountdown = 5;
+
+        let audioMuted = false;
+
+        let cameraActive = false;
+        let lastHandX = window.innerWidth / 2;
+        let lastHandY = window.innerHeight / 2;
+        let targetHandX = window.innerWidth / 2;
+        let targetHandY = window.innerHeight / 2;
+        let isPinching = false;
+        let holdTargetElement = null;
+        let holdStartTime = 0;
+        const HOLD_DURATION = 1000;
+        let lastClickTime = 0;
+        let handMissingTimer = null;
+        let isHandDetected = false;
+
+        let audioCtx = null;
+        function getAudioContext() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            return audioCtx;
+        }
+
+        function playSound(type) {
+            if (audioMuted) return;
+            try {
+                const ctx = getAudioContext();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+
+                const now = ctx.currentTime;
+                if (type === 'click') {
+                    osc.frequency.setValueAtTime(600, now);
+                    osc.frequency.exponentialRampToValueAtTime(800, now + 0.08);
+                    gain.gain.setValueAtTime(0.15, now);
+                    gain.gain.linearRampToValueAtTime(0.01, now + 0.08);
+                    osc.start(now);
+                    osc.stop(now + 0.08);
+                } else if (type === 'benar') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(440, now);
+                    osc.frequency.setValueAtTime(554.37, now + 0.1);
+                    osc.frequency.setValueAtTime(659.25, now + 0.2);
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.linearRampToValueAtTime(0.01, now + 0.4);
+                    osc.start(now);
+                    osc.stop(now + 0.4);
+                } else if (type === 'salah') {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(220, now);
+                    osc.frequency.setValueAtTime(180, now + 0.15);
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.linearRampToValueAtTime(0.01, now + 0.3);
+                    osc.start(now);
+                    osc.stop(now + 0.3);
+                } else if (type === 'peti') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(300, now);
+                    osc.frequency.exponentialRampToValueAtTime(900, now + 0.25);
+                    gain.gain.setValueAtTime(0.25, now);
+                    gain.gain.linearRampToValueAtTime(0.01, now + 0.25);
+                    osc.start(now);
+                    osc.stop(now + 0.25);
+                }
+            } catch(e) {
+                console.error(e);
+            }
+        }
+
+        function toggleAudio() {
+            audioMuted = !audioMuted;
+            const btn = document.getElementById('btn-audio');
+            btn.innerHTML = audioMuted ? '<i class="fa-solid fa-volume-xmark text-lg"></i>' : '<i class="fa-solid fa-volume-high text-lg"></i>';
+        }
+
+        window.onload = function() {
+            inisialisasiRondeSoal();
+            perbaruiBankSoalBadge();
+            renderPetiGrid();
+            renderLiveScoreboard();
+            inisialisasiLoopKursor();
+        };
+
+        function perbaruiBankSoalBadge() {
+            const badge = document.getElementById('bank-soal-badge');
+            badge.innerText = `Bank soal: ${bankSoalAktif.length} soal`;
+        }
+
+        function inisialisasiRondeSoal() {
+            if (!penempatanPeti || Object.keys(penempatanPeti).length === 0) {
+                aturRondeBaru();
+            }
+        }
+
+        function aturRondeBaru() {
+            let sediaSoal = bankSoalAktif.filter(s => !soalTerpakai.includes(s.id));
+            if (sediaSoal.length < 10) {
+                soalTerpakai = [];
+                sediaSoal = [...bankSoalAktif];
+            }
+            sediaSoal.sort(() => Math.random() - 0.5);
+            soalRonde = sediaSoal.slice(0, 10);
+
+            penempatanPeti = {};
+            statusPetiRonde = {};
+            soalRonde.forEach((soal, index) => {
+                let nomorPeti = index + 1;
+                penempatanPeti[nomorPeti] = soal.id;
+                statusPetiRonde[nomorPeti] = false;
+            });
+
+            simpanKeLocalStorage();
+        }
+
+        function simpanKeLocalStorage() {
+            try {
+                localStorage.setItem('bep_bank_soal', JSON.stringify(bankSoalAktif));
+                localStorage.setItem('bep_status_peti', JSON.stringify(statusPetiRonde));
+                localStorage.setItem('bep_penempatan_peti', JSON.stringify(penempatanPeti));
+                localStorage.setItem('bep_soal_terpakai', JSON.stringify(soalTerpakai));
+                localStorage.setItem('bep_skor', JSON.stringify(papanSkor));
+            } catch(e) {
+                console.error("Gagal simpan ke localStorage", e);
+            }
+        }
+
+        function pindahKeLayar(layarId) {
+            playSound('click');
+            document.querySelectorAll('.app-screen').forEach(el => el.classList.add('hidden'));
+            document.getElementById(layarId).classList.remove('hidden');
+
+            if (layarId === 'layar-2') {
+                renderPetiGrid();
+                renderLiveScoreboard();
+            } else if (layarId === 'layar-6') {
+                renderTabelSkorLengkap();
+                renderPodium();
+                munculkanKonfeti();
+            }
+        }
+
+        function renderPetiGrid() {
+            const grid = document.getElementById('grid-peti');
+            grid.innerHTML = '';
+            let jumlahPetiTotal = Object.keys(penempatanPeti).length;
+            let terjawabCount = 0;
+
+            for (let i = 1; i <= jumlahPetiTotal; i++) {
+                let sudahSelesai = statusPetiRonde[i];
+                if (sudahSelesai) terjawabCount++;
+
+                let boxEl = document.createElement('div');
+                if (sudahSelesai) {
+                    boxEl.className = "mystery-box terjawab rounded-2xl flex flex-col items-center justify-center p-4 text-white shadow-md relative h-32";
+                    boxEl.innerHTML = `
+                        <div class="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center text-white mb-2">
+                            <i class="fa-solid fa-check"></i>
+                        </div>
+                        <span class="font-bold text-sm">Peti #${i}</span>
+                        <span class="text-xs text-slate-200">Selesai</span>
+                    `;
+                } else {
+                    boxEl.className = "mystery-box rounded-2xl flex flex-col items-center justify-center p-4 text-white shadow-xl target-kamera relative h-32 cursor-pointer";
+                    boxEl.onclick = () => bukaBox(i);
+                    boxEl.innerHTML = `
+                        <div class="absolute -top-3 -right-3 w-8 h-8 rounded-full bg-amber-400 text-slate-900 font-extrabold flex items-center justify-center shadow border-2 border-white text-xs">
+                            ?
+                        </div>
+                        <i class="fa-solid fa-treasure-chest text-3xl mb-2 text-amber-200"></i>
+                        <span class="font-extrabold text-base">Peti #${i}</span>
+                        <span class="text-xs bg-black/20 px-2 py-0.5 rounded-full mt-1">Buka Tantangan</span>
+                    `;
+                }
+                grid.appendChild(boxEl);
+            }
+
+            document.getElementById('peti-tersisa-count').innerText = (jumlahPetiTotal - terjawabCount);
+        }
+
+        function bukaBox(nomor) {
+            if (statusPetiRonde[nomor]) return;
+            playSound('peti');
+            kotakAktifNomor = nomor;
+            pemainAktif = "";
+            document.getElementById('display-nama-input').innerHTML = '<span class="text-slate-400 font-normal text-2xl">Ketuk huruf di bawah...</span>';
+            document.getElementById('judul-pilih-peti').innerText = `Peti #${nomor} Terbuka! Masukkan Namamu`;
+            document.getElementById('btn-simpan-nama').disabled = true;
+            document.getElementById('btn-simpan-nama').className = "w-full h-full rounded-2xl bg-slate-300 text-slate-500 font-extrabold text-2xl shadow flex items-center justify-center gap-3 transition-all duration-300";
+
+            pindahKeLayar('layar-3');
+        }
+
+        function ketikHuruf(huruf) {
+            playSound('click');
+            if (pemainAktif.length >= 20) return;
+            if (pemainAktif.length === 0) {
+                pemainAktif = huruf.toUpperCase();
+            } else {
+                pemainAktif += huruf.toLowerCase();
+            }
+            perbaruiTampilanNama();
+        }
+
+        function ketikSpasi() {
+            playSound('click');
+            if (pemainAktif.length >= 20 || pemainAktif.length === 0) return;
+            pemainAktif += ' ';
+            perbaruiTampilanNama();
+        }
+
+        function hapusHuruf() {
+            playSound('click');
+            if (pemainAktif.length > 0) {
+                pemainAktif = pemainAktif.slice(0, -1);
+            }
+            perbaruiTampilanNama();
+        }
+
+        function perbaruiTampilanNama() {
+            const display = document.getElementById('display-nama-input');
+            const btnSimpan = document.getElementById('btn-simpan-nama');
+
+            if (pemainAktif.length === 0) {
+                display.innerHTML = '<span class="text-slate-400 font-normal text-2xl">Ketuk huruf di bawah...</span>';
+            } else {
+                display.innerHTML = `<span class="border-r-4 border-teal-500 pr-1 animate-pulse">${pemainAktif}</span>`;
+            }
+
+            if (pemainAktif.trim().length >= 2) {
+                btnSimpan.disabled = false;
+                btnSimpan.className = "w-full h-full rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-extrabold text-2xl shadow-xl target-kamera flex items-center justify-center gap-3 transition-all duration-300 border-2 border-white animate-pulse";
+            } else {
+                btnSimpan.disabled = true;
+                btnSimpan.className = "w-full h-full rounded-2xl bg-slate-300 text-slate-500 font-extrabold text-2xl shadow flex items-center justify-center gap-3 transition-all duration-300";
+            }
+        }
+
+        function kembaliKeHalamanUtamaDariNama() {
+            kotakAktifNomor = null;
+            pemainAktif = "";
+            pindahKeLayar('layar-2');
+        }
+
+        function simpanNamaDanBukaSoal() {
+            if (pemainAktif.trim().length < 2) return;
+            playSound('benar');
+
+            pemainAktif = pemainAktif.trim().split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+
+            const display = document.getElementById('display-nama-input');
+            display.innerHTML = `<span class="text-emerald-600">Halo, ${pemainAktif}! Soal segera terbuka...</span>`;
+
+            setTimeout(() => {
+                pindahKeSoal(kotakAktifNomor);
+            }, 1200);
+        }
+
+        function pindahKeSoal(nomorBox) {
+            kotakAktifNomor = nomorBox;
+            let soalId = penempatanPeti[nomorBox];
+            soalAktifObj = bankSoalAktif.find(s => s.id === soalId);
+
+            if (!soalAktifObj) {
+                soalAktifObj = bankSoalAktif[0];
+            }
+
+            document.getElementById('label-soal-box').innerText = `Peti #${nomorBox}`;
+            document.getElementById('label-soal- pemain').innerText = `Pemain: ${pemainAktif}`;
+            document.getElementById('teks-soal').innerText = soalAktifObj.soal;
+
+            let keys = ['A', 'B', 'C', 'D'];
+            let originalChoices = { ...soalAktifObj.pilihan };
+            keys.sort(() => Math.random() - 0.5);
+
+            let mappedChoices = {};
+            let newKunci = '';
+            let hurufBaruList = ['A', 'B', 'C', 'D'];
+
+            keys.forEach((kunciAsli, index) => {
+                let hurufBaru = hurufBaruList[index];
+                mappedChoices[hurufBaru] = originalChoices[kunciAsli];
+                if (kunciAsli === soalAktifObj.kunci) {
+                    newKunci = hurufBaru;
+                }
+            });
+
+            soalAktifObj.pilihanAcak = mappedChoices;
+            soalAktifObj.kunciAcak = newKunci;
+
+            document.getElementById('teks-opsi-A').innerText = `A. ${mappedChoices['A']}`;
+            document.getElementById('teks-opsi-B').innerText = `B. ${mappedChoices['B']}`;
+            document.getElementById('teks-opsi-C').innerText = `C. ${mappedChoices['C']}`;
+            document.getElementById('teks-opsi-D').innerText = `D. ${mappedChoices['D']}`;
+
+            pilihanTerpilih = null;
+            resetCardOpsiStyling();
+
+            const btnKunci = document.getElementById('btn-kunci-jawaban');
+            btnKunci.disabled = true;
+            btnKunci.className = "px-8 py-3 rounded-2xl bg-slate-300 text-slate-500 font-bold text-lg shadow";
+            btnKunci.innerText = "Pilih salah satu jawaban dulu";
+
+            let opsiCards = ['A', 'B', 'C', 'D'].map(h => document.getElementById(`opsi-card-${h}`));
+            opsiCards.forEach(card => {
+                card.classList.add('opacity-50', 'pointer-events-none');
+            });
+
+            sisaBacaCountdown = 5;
+            const badgeBaca = document.getElementById('countdown-baca');
+            badgeBaca.parentElement.classList.remove('hidden');
+            badgeBaca.innerText = `⏳ Baca soal dulu: ${sisaBacaCountdown}s`;
+
+            if (bacaCountdownInterval) clearInterval(bacaCountdownInterval);
+            bacaCountdownInterval = setInterval(() => {
+                sisaBacaCountdown--;
+                if (sisaBacaCountdown > 0) {
+                    badgeBaca.innerText = `⏳ Baca soal dulu: ${sisaBacaCountdown}s`;
+                } else {
+                    clearInterval(bacaCountdownInterval);
+                    badgeBaca.parentElement.classList.add('hidden');
+                    opsiCards.forEach(card => {
+                        card.classList.remove('opacity-50', 'pointer-events-none');
+                    });
+                    mulaiTimerSoal();
+                }
+            }, 1000);
+
+            pindahKeLayar('layar-4');
+        }
+
+        function mulaiTimerSoal() {
+            detikSoal = 0;
+            document.getElementById('timer-soal').innerText = detikSoal;
+            if (timerSoalInterval) clearInterval(timerSoalInterval);
+            timerSoalInterval = setInterval(() => {
+                detikSoal++;
+                document.getElementById('timer-soal').innerText = detikSoal;
+            }, 1000);
+        }
+
+        function pilihOpsi(huruf) {
+            playSound('click');
+            pilihanTerpilih = huruf;
+            resetCardOpsiStyling();
+
+            const card = document.getElementById(`opsi-card-${huruf}`);
+            card.classList.add('border-teal-500', 'bg-teal-50', 'shadow-lg', 'scale-102');
+
+            const btnKunci = document.getElementById('btn-kunci-jawaban');
+            btnKunci.disabled = false;
+            btnKunci.className = "px-10 py-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-extrabold text-xl shadow-xl target-kamera border-2 border-white";
+            btnKunci.innerText = `KUNCI JAWABAN (${huruf})`;
+        }
+
+        function resetCardOpsiStyling() {
+            ['A', 'B', 'C', 'D'].forEach(h => {
+                const c = document.getElementById(`opsi-card-${h}`);
+                c.className = "glass-card p-4 flex items-center gap-4 target-kamera border-2 border-slate-200";
+            });
+        }
+
+        function kunciJawaban() {
+            if (!pilihanTerpilih) return;
+            if (timerSoalInterval) clearInterval(timerSoalInterval);
+
+            statusPetiRonde[kotakAktifNomor] = true;
+            soalTerpakai.push(soalAktifObj.id);
+            simpanKeLocalStorage();
+
+            let apakahBenar = (pilihanTerpilih === soalAktifObj.kunciAcak);
+            let poinDasar = apakahBenar ? 10 : 0;
+            let bonusKecepatan = 0;
+
+            if (apakahBenar) {
+                if (detikSoal <= 15) bonusKecepatan = 5;
+                else if (detikSoal <= 30) bonusKecepatan = 3;
+            }
+
+            let totalPoinDiperoleh = poinDasar + bonusKecepatan;
+
+            catatSkorPemain(pemainAktif, apakahBenar, totalPoinDiperoleh, bonusKecepatan > 0);
+            tampilkanLayarHasil(apakahBenar, poinDasar, bonusKecepatan, totalPoinDiperoleh, soalAktifObj);
+        }
+
+        function catatSkorPemain(nama, benar, poin, bonus) {
+            let idx = papanSkor.findIndex(p => p.nama.toLowerCase() === nama.toLowerCase());
+            if (idx >= 0) {
+                papanSkor[idx].benar += (benar ? 1 : 0);
+                papanSkor[idx].salah += (benar ? 0 : 1);
+                papanSkor[idx].bonus += (bonus ? (papanSkor[idx].bonus > 0 ? 3 : 5) : 0);
+                papanSkor[idx].totalSkor += poin;
+            } else {
+                papanSkor.push({
+                    nama: nama,
+                    benar: benar ? 1 : 0,
+                    salah: benar ? 0 : 1,
+                    bonus: bonus ? (detikSoal <= 15 ? 5 : 3) : 0,
+                    totalSkor: poin
+                });
+            }
+            papanSkor.sort((a, b) => b.totalSkor - a.totalSkor);
+            simpanKeLocalStorage();
+        }
+
+        function tampilkanLayarHasil(benar, dasar, bonus, total, soal) {
+            const iconContainer = document.getElementById('hasil-icon-container');
+            const judul = document.getElementById('hasil-judul');
+            const poinDetail = document.getElementById('hasil-poin-detail');
+            const pembahasanTeks = document.getElementById('hasil-pembahasan-teks');
+
+            if (benar) {
+                playSound('benar');
+                munculkanKonfeti();
+                iconContainer.className = "w-24 h-24 rounded-full bg-emerald-500 flex items-center justify-center text-white text-5xl shadow-xl mb-6 border-4 border-white animate-bounce";
+                iconContainer.innerHTML = '<i class="fa-solid fa-award"></i>';
+                judul.innerText = `Hebat, ${pemainAktif}! Jawaban Benar! 🎉`;
+                poinDetail.innerText = `+${dasar} poin ${bonus > 0 ? `+ ${bonus} bonus kecepatan` : ''} = +${total} Poin`;
+                poinDetail.className = "text-lg font-bold text-emerald-700 mb-6 px-6 py-2 rounded-xl bg-emerald-100 border border-emerald-300";
+            } else {
+                playSound('salah');
+                iconContainer.className = "w-24 h-24 rounded-full bg-rose-500 flex items-center justify-center text-white text-5xl shadow-xl mb-6 border-4 border-white";
+                iconContainer.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+                judul.innerText = `Tetap Semangat, ${pemainAktif}!`;
+                let kunciAsliHuruf = soal.kunciAcak;
+                poinDetail.innerText = `Jawaban yang benar adalah (${kunciAsliHuruf}: ${soal.pilihanAcak[kunciAsliHuruf]})`;
+                poinDetail.className = "text-base font-bold text-rose-700 mb-6 px-6 py-3 rounded-xl bg-rose-100 border border-rose-300";
+            }
+
+            pembahasanTeks.innerHTML = `<strong>Pembahasan:</strong> ${soal.pembahasan}`;
+            pindahKeLayar('layar-5');
+        }
+
+        function kembaliKePeti() {
+            let totalPeti = Object.keys(penempatanPeti).length;
+            let semuaSelesai = true;
+            for (let i = 1; i <= totalPeti; i++) {
+                if (!statusPetiRonde[i]) {
+                    semuaSelesai = false;
+                    break;
+                }
+            }
+
+            if (semuaSelesai) {
+                pindahKeLayar('layar-6');
+            } else {
+                pindahKeLayar('layar-2');
+            }
+        }
+
+        function renderLiveScoreboard() {
+            const listEl = document.getElementById('live-scoreboard-list');
+            if (papanSkor.length === 0) {
+                listEl.innerHTML = `<div class="text-center text-slate-500 text-sm py-8 italic">Belum ada pemain.<br>Ayo buka peti pertama!</div>`;
+                return;
+            }
+
+            listEl.innerHTML = '';
+            papanSkor.slice(0, 5).forEach((p, idx) => {
+                let badgeMedal = '';
+                if (idx === 0) badgeMedal = '🥇';
+                else if (idx === 1) badgeMedal = '🥈';
+                else if (idx === 2) badgeMedal = '🥉';
+                else badgeMedal = `#${idx+1}`;
+
+                let item = document.createElement('div');
+                item.className = "flex items-center justify-between p-2.5 rounded-xl bg-white/80 shadow-sm border border-slate-200 text-sm";
+                item.innerHTML = `
+                    <div class="flex items-center gap-2">
+                        <span class="font-bold text-amber-600 w-6">${badgeMedal}</span>
+                        <span class="font-bold text-slate-800 truncate max-w-[110px]">${p.nama}</span>
+                    </div>
+                    <span class="font-extrabold text-teal-700">${p.totalSkor} pts</span>
+                `;
+                listEl.appendChild(item);
+            });
+        }
+
+        function bukaPapanSkorPenuh() {
+            pindahKeLayar('layar-6');
+        }
+
+        function renderTabelSkorLengkap() {
+            const tbody = document.getElementById('tabel-skor-lengkap');
+            if (papanSkor.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="text-center py-6 text-slate-500 italic">Belum ada data skor.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = '';
+            papanSkor.forEach((p, idx) => {
+                let tr = document.createElement('tr');
+                tr.className = "hover:bg-white/50";
+                tr.innerHTML = `
+                    <td class="p-3 font-bold text-teal-700">#${idx+1}</td>
+                    <td class="p-3 font-bold text-slate-800">${p.nama}</td>
+                    <td class="p-3 text-center text-emerald-600 font-bold">${p.benar}</td>
+                    <td class="p-3 text-center text-rose-600 font-bold">${p.salah}</td>
+                    <td class="p-3 text-center text-amber-600 font-bold">+${p.bonus}</td>
+                    <td class="p-3 text-right font-extrabold text-teal-800">${p.totalSkor}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function renderPodium() {
+            const podium = document.getElementById('podium-container');
+            podium.innerHTML = '';
+
+            if (papanSkor.length === 0) {
+                podium.innerHTML = `<div class="text-xs text-slate-500 italic text-center">Belum ada juara</div>`;
+                return;
+            }
+
+            let top3 = papanSkor.slice(0, 3);
+            let urutanPodium = [];
+            if (top3[1]) urutanPodium.push({ data: top3[1], rank: 2, height: 'h-32', color: 'bg-slate-300 border-slate-400' });
+            if (top3[0]) urutanPodium.push({ data: top3[0], rank: 1, height: 'h-40', color: 'bg-amber-400 border-amber-500' });
+            if (top3[2]) urutanPodium.push({ data: top3[2], rank: 3, height: 'h-24', color: 'bg-amber-700 border-amber-800' });
+
+            urutanPodium.forEach(item => {
+                let col = document.createElement('div');
+                col.className = "flex flex-col items-center flex-1";
+                col.innerHTML = `
+                    <span class="text-xs font-bold text-slate-800 mb-1 truncate max-w-[80px]">${item.data.nama}</span>
+                    <span class="text-[10px] font-extrabold text-teal-800 mb-1">${item.data.totalSkor}pts</span>
+                    <div class="w-full ${item.height} ${item.color} rounded-t-2xl flex items-center justify-center text-white font-extrabold text-lg shadow-md border-2">
+                        #${item.rank}
+                    </div>
+                `;
+                podium.appendChild(col);
+            });
+        }
+
+        function mainLagiSkorTetap() {
+            aturRondeBaru();
+            pindahKeLayar('layar-2');
+        }
+
+        function konfirmasiMulaiBaru() {
+            document.getElementById('modal-konfirmasi-reset').classList.remove('hidden');
+        }
+
+        function tutupKonfirmasiReset() {
+            document.getElementById('modal-konfirmasi-reset').classList.add('hidden');
+        }
+
+        function eksekusiMulaiBaru() {
+            tutupKonfirmasiReset();
+            localStorage.clear();
+            papanSkor = [];
+            soalTerpakai = [];
+            bankSoalAktif = [...DEFAULT_BANK_SOAL];
+            aturRondeBaru();
+            pindahKeLayar('layar-1');
+        }
+
+        function munculkanKonfeti() {
+            for (let i = 0; i < 50; i++) {
+                let conf = document.createElement('div');
+                conf.className = 'confetti-piece';
+                conf.style.left = Math.random() * 100 + 'vw';
+                conf.style.backgroundColor = ['#FFC93C', '#D45BB5', '#4FB3F6', '#2E9E5B', '#7B4FC9'][Math.floor(Math.random() * 5)];
+                conf.style.animationDelay = Math.random() * 2 + 's';
+                conf.style.animationDuration = (Math.random() * 2 + 2) + 's';
+                document.body.appendChild(conf);
+                setTimeout(() => conf.remove(), 4000);
+            }
+        }
+
+        function bukaModeGuru() {
+            document.getElementById('modal-guru').classList.remove('hidden');
+        }
+
+        function tutupModeGuru() {
+            document.getElementById('modal-guru').classList.add('hidden');
+        }
+
+        async function unggahFileWord(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            document.getElementById('nama-file-info').innerText = `File dipilih: ${file.name}`;
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                const arrayBuffer = e.target.result;
+                try {
+                    const result = await mammoth.extractRawText({ arrayBuffer: arrayBuffer });
+                    const text = result.value;
+                    parsingTeksWordKeBankSoal(text);
+                } catch (err) {
+                    console.error("Gagal membaca file Word", err);
+                    alert("Gagal membaca file .docx. Pastikan file valid.");
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function parsingTeksWordKeBankSoal(text) {
+            let lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+            let parsedSoal = [];
+            let currentSoal = null;
+            let soalIdCounter = 1;
+
+            lines.forEach(line => {
+                if (/^(\d+[\.\)]|soal\s*\d+)/i.test(line)) {
+                    if (currentSoal && currentSoal.kunci && currentSoal.pilihan.A) {
+                        parsedSoal.push(currentSoal);
+                    }
+                    currentSoal = {
+                        id: soalIdCounter++,
+                        soal: line.replace(/^(\d+[\.\)]|soal\s*\d+[\.\:]*)\s*/i, ''),
+                        pilihan: {},
+                        kunci: 'A',
+                        pembahasan: 'Pembahasan belum tersedia dari dokumen.'
+                    };
+                } else if (/^[aA][\.\)]/.test(line) && currentSoal) {
+                    currentSoal.pilihan.A = line.replace(/^[aA][\.\)]\s*/, '');
+                } else if (/^[bB][\.\)]/.test(line) && currentSoal) {
+                    currentSoal.pilihan.B = line.replace(/^[bB][\.\)]\s*/, '');
+                } else if (/^[cC][\.\)]/.test(line) && currentSoal) {
+                    currentSoal.pilihan.C = line.replace(/^[cC][\.\)]\s*/, '');
+                } else if (/^[dD][\.\)]/.test(line) && currentSoal) {
+                    currentSoal.pilihan.D = line.replace(/^[dD][\.\)]\s*/, '');
+                } else if (/^jawaban[:\s]+/i.test(line) && currentSoal) {
+                    let k = line.replace(/^jawaban[:\s]+/i, '').trim().toUpperCase();
+                    if (['A', 'B', 'C', 'D'].includes(k)) currentSoal.kunci = k;
+                } else if (/^pembahasan[:\s]+/i.test(line) && currentSoal) {
+                    currentSoal.pembahasan = line.replace(/^pembahasan[:\s]+/i, '').trim();
+                } else if (currentSoal && !currentSoal.pilihan.A) {
+                    currentSoal.soal += " " + line;
+                }
+            });
+
+            if (currentSoal && currentSoal.kunci && currentSoal.pilihan.A) {
+                parsedSoal.push(currentSoal);
+            }
+
+            if (parsedSoal.length > 0) {
+                bankSoalAktif = parsedSoal;
+                soalTerpakai = [];
+                aturRondeBaru();
+                perbaruiBankSoalBadge();
+
+                document.getElementById('pratinjau-bank-soal').classList.remove('hidden');
+                document.getElementById('info-jumlah-soal-baca').innerText = `Berhasil membaca ${parsedSoal.length} soal dari file Word!`;
+                
+                let listPrev = document.getElementById('list-pratinjau-soal');
+                listPrev.innerHTML = '';
+                parsedSoal.forEach(s => {
+                    let div = document.createElement('div');
+                    div.innerText = `• Soal #${s.id}: ${s.soal.substring(0, 60)}... (Kunci: ${s.kunci})`;
+                    listPrev.appendChild(div);
+                });
+            } else {
+                alert("Format teks dalam file Word tidak dikenali. Pastikan mengikuti format soal dan pilihan A-D.");
+            }
+        }
+
+        function resetKeBankBawaan() {
+            bankSoalAktif = [...DEFAULT_BANK_SOAL];
+            soalTerpakai = [];
+            aturRondeBaru();
+            perbaruiBankSoalBadge();
+            document.getElementById('pratinjau-bank-soal').classList.add('hidden');
+            document.getElementById('nama-file-info').innerText = "Dikembalikan ke soal bawaan.";
+        }
+
+        let kameraMinim = false;
+        function toggleMinimizeKamera() {
+            kameraMinim = !kameraMinim;
+            const viewBox = document.getElementById('kamera-view-box');
+            const icon = document.getElementById('icon-minimize');
+            const container = document.getElementById('kamera-widget-container');
+            
+            if (kameraMinim) {
+                viewBox.style.display = 'none';
+                icon.className = "fa-solid fa-expand";
+                container.style.padding = '8px 12px';
+            } else {
+                viewBox.style.display = 'block';
+                icon.className = "fa-solid fa-minus";
+                container.style.padding = '8px';
+            }
+        }
+
+        function inisialisasiKamera() {
+            const videoElement = document.getElementById('webcam');
+            const canvasElement = document.getElementById('output_canvas');
+            const canvasCtx = canvasElement.getContext('2d');
+
+            const hands = new Hands({
+                locateFile: (file) => {
+                    return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
+                }
+            });
+
+            hands.setOptions({
+                maxNumHands: 1,
+                modelComplexity: 1,
+                minDetectionConfidence: 0.6,
+                minTrackingConfidence: 0.6
+            });
+
+            hands.onResults(onHandResults);
+
+            const camera = new Camera(videoElement, {
+                onFrame: async () => {
+                    await hands.send({ image: videoElement });
+                },
+                width: 320,
+                height: 240
+            });
+
+            camera.start().then(() => {
+                cameraActive = true;
+                document.getElementById('camera-status-dot').className = "w-3 h-3 rounded-full bg-emerald-500 inline-block animate-pulse";
+                document.getElementById('camera-status-text').innerText = "Kamera Aktif";
+                document.getElementById('div-aktifkan-kamera').classList.add('hidden');
+                document.getElementById('div-mulai-game').classList.remove('hidden');
+            }).catch(err => {
+                console.error("Gagal membuka kamera:", err);
+                const display = document.getElementById('camera-status-text');
+                if (display) display.innerText = "Kamera gagal diakses.";
+            });
+        }
+
+        function onHandResults(results) {
+            const svgProgress = document.getElementById('cursor-progress-svg');
+            
+            if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+                isHandDetected = true;
+                if (handMissingTimer) clearTimeout(handMissingTimer);
+
+                const landmarks = results.multiHandLandmarks[0];
+                const indexTip = landmarks[8];
+                const thumbTip = landmarks[4];
+
+                targetHandX = (1 - indexTip.x) * window.innerWidth;
+                targetHandY = indexTip.y * window.innerHeight;
+
+                let distX = indexTip.x - thumbTip.x;
+                let distY = indexTip.y - thumbTip.y;
+                let dist = Math.sqrt(distX * distX + distY * distY);
+
+                isPinching = (dist < 0.05);
+
+                cekInteraksiKursor(targetHandX, targetHandY, isPinching);
+
+                if (svgProgress) svgProgress.classList.remove('hidden');
+            } else {
+                if (!handMissingTimer) {
+                    handMissingTimer = setTimeout(() => {
+                        isHandDetected = false;
+                        if (svgProgress) svgProgress.classList.add('hidden');
+                    }, 500);
+                }
+            }
+        }
+
+        function inisialisasiLoopKursor() {
+            function loop() {
+                lastHandX += (targetHandX - lastHandX) * 0.25;
+                lastHandY += (targetHandY - lastHandY) * 0.25;
+
+                const cursor = document.getElementById('cursor-kamera');
+                if (cursor) {
+                    cursor.style.left = `${lastHandX}px`;
+                    cursor.style.top = `${lastHandY}px`;
+                }
+
+                requestAnimationFrame(loop);
+            }
+            requestAnimationFrame(loop);
+        }
+
+        function cekInteraksiKursor(x, y, pinching) {
+            const elements = document.elementsFromPoint(x, y);
+            let targetEl = null;
+            for (let el of elements) {
+                if (el.classList.contains('target-kamera') || el.onclick) {
+                    targetEl = el;
+                    break;
+                }
+            }
+
+            const svgCircle = document.querySelector('#cursor-progress-svg path');
+
+            if (targetEl) {
+                targetEl.classList.add('hover-kamera');
+                if (holdTargetElement !== targetEl) {
+                    holdTargetElement = targetEl;
+                    holdStartTime = Date.now();
+                } else {
+                    let elapsed = Date.now() - holdStartTime;
+                    let progress = Math.min(elapsed / HOLD_DURATION, 1);
+                    let dashOffset = 100 - (progress * 100);
+                    if (svgCircle) svgCircle.style.strokeDashoffset = dashOffset;
+
+                    if (elapsed >= HOLD_DURATION || pinching) {
+                        triggerElementClick(targetEl);
+                        holdTargetElement = null;
+                        holdStartTime = Date.now();
+                        if (svgCircle) svgCircle.style.strokeDashoffset = 100;
+                    }
+                }
+            } else {
+                if (holdTargetElement) {
+                    holdTargetElement.classList.remove('hover-kamera');
+                }
+                holdTargetElement = null;
+                holdStartTime = Date.now();
+                if (svgCircle) svgCircle.style.strokeDashoffset = 100;
+            }
+
+            document.querySelectorAll('.target-kamera').forEach(el => {
+                if (el !== holdTargetElement) {
+                    el.classList.remove('hover-kamera');
+                }
+            });
+        }
+
+        function triggerElementClick(el) {
+            let now = Date.now();
+            if (now - lastClickTime < 600) return;
+            lastClickTime = now;
+
+            if (el.tagName === 'BUTTON' || el.onclick || el.classList.contains('target-kamera')) {
+                el.click();
+            }
+        }
+    </script>
+</body>
+</html>
